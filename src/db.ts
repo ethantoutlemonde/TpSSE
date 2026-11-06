@@ -33,3 +33,11 @@ export function getProducts() {
 export function getOrders() {
   return db.getObject<Order[]>("/orders");
 }
+
+export function saveProducts(products: Product[]) {
+  return db.push("/products", products);
+}
+
+export function saveOrders(orders: Order[]) {
+  return db.push("/orders", orders);
+}
