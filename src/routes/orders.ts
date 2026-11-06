@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getOrders, getProducts, getUsers, saveOrders, saveProducts } from "../db";
+import { scheduleDelivery } from "../delivery";
 import { sendOrder, sendStock, subscribe } from "../sse";
 import { Order } from "../types";
 
@@ -99,6 +100,7 @@ router.patch("/:id", async (req, res) => {
     order.status = "shipped";
     await saveOrders(orders);
     sendOrder("order-status", order);
+    scheduleDelivery(order.id);
     res.json(order);
     return;
   }
