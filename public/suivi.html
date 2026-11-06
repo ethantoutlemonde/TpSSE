@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Suivi de commande</title>
+</head>
+<body>
+  <h1 id="title">Suivi de commande</h1>
+  <p>Statut : <strong id="status">...</strong></p>
+  <p id="info"></p>
+
+  <script>
+    const labels = {
+      preparing: "En preparation",
+      shipped: "Expediee",
+      delivered: "Livree",
+      cancelled: "Annulee",
+    };
+
+    const id = new URLSearchParams(location.search).get("id");
+    const statusEl = document.getElementById("status");
+
+    function showOrder(order) {
+      document.getElementById("title").textContent = "Commande #" + order.id;
+      document.getElementById("info").textContent = "Produit " + order.productId + ", quantite " + order.quantity;
+      statusEl.textContent = labels[order.status];
+    }
+
+    fetch("/orders/" + id).then((res) => {
+      if (!res.ok) {
+        statusEl.textContent = "Commande introuvable";
+        return;
+      }
+      res.json().then(showOrder);
+
+      const source = new EventSource("/orders/" + id + "/events");
+      source.addEventListener("order-status", (e) => showOrder(JSON.parse(e.data)));
+      source.addEventListener("order-cancelled", (e) => showOrder(JSON.parse(e.data)));
+    });
+  </script>
+</body>
+</html>
