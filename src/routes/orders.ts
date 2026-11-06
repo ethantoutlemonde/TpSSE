@@ -23,8 +23,13 @@ router.get("/:id", async (req, res) => {
 router.get("/:id/events", async (req, res) => {
   const id = Number(req.params.id);
   const orders = await getOrders();
-  if (!orders.find((o) => o.id === id)) {
+  const order = orders.find((o) => o.id === id);
+  if (!order) {
     res.status(404).json({ error: "Commande introuvable" });
+    return;
+  }
+  if (order.status === "delivered" || order.status === "cancelled") {
+    res.status(204).end();
     return;
   }
   subscribe(req, res, id);

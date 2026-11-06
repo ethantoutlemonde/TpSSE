@@ -20,6 +20,10 @@
     const id = new URLSearchParams(location.search).get("id");
     const statusEl = document.getElementById("status");
 
+    function isFinished(order) {
+      return order.status === "delivered" || order.status === "cancelled";
+    }
+
     function showOrder(order) {
       document.getElementById("title").textContent = "Commande #" + order.id;
       document.getElementById("info").textContent = "Produit " + order.productId + ", quantite " + order.quantity;
@@ -31,11 +35,19 @@
         statusEl.textContent = "Commande introuvable";
         return;
       }
-      res.json().then(showOrder);
+      res.json().then((order) => {
+        showOrder(order);
+        if (isFinished(order)) return;
 
-      const source = new EventSource("/orders/" + id + "/events");
-      source.addEventListener("order-status", (e) => showOrder(JSON.parse(e.data)));
-      source.addEventListener("order-cancelled", (e) => showOrder(JSON.parse(e.data)));
+        const source = new EventSource("/orders/" + id + "/events");
+        function update(e) {
+          const order = JSON.parse(e.data);
+          showOrder(order);
+          if (isFinished(order)) source.close();
+        }
+        source.addEventListener("order-status", update);
+        source.addEventListener("order-cancelled", update);
+      });
     });
   </script>
 </body>
