@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getOrders, getProducts, getUsers, saveOrders, saveProducts } from "../db";
+import { sendOrder, sendStock, subscribe } from "../sse";
 import { Order } from "../types";
 
 const router = Router();
@@ -16,6 +17,16 @@ router.get("/:id", async (req, res) => {
     return;
   }
   res.json(order);
+});
+
+router.get("/:id/events", async (req, res) => {
+  const id = Number(req.params.id);
+  const orders = await getOrders();
+  if (!orders.find((o) => o.id === id)) {
+    res.status(404).json({ error: "Commande introuvable" });
+    return;
+  }
+  subscribe(req, res, id);
 });
 
 router.post("/", async (req, res) => {
@@ -59,6 +70,8 @@ router.post("/", async (req, res) => {
   await saveProducts(products);
   await saveOrders(orders);
 
+  sendOrder("order-created", order);
+  sendStock(product);
   res.status(201).json(order);
 });
 
@@ -85,6 +98,7 @@ router.patch("/:id", async (req, res) => {
   if (status === "shipped") {
     order.status = "shipped";
     await saveOrders(orders);
+    sendOrder("order-status", order);
     res.json(order);
     return;
   }
@@ -94,10 +108,12 @@ router.patch("/:id", async (req, res) => {
   if (product) {
     product.stock += order.quantity;
     await saveProducts(products);
+    sendStock(product);
   }
 
   order.status = "cancelled";
   await saveOrders(orders);
+  sendOrder("order-cancelled", order);
   res.json(order);
 });
 
